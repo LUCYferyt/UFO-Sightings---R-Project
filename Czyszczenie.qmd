@@ -15,53 +15,23 @@ library(withr)
 
 
 ```{r}
-# URL z pełnymi danymi UFO (z informacjami o porze dnia itp.)
-url <- "https://github.com/jonthegeek/apis/raw/main/data/data_ufo_reports_with_day_part.rds"
-
-# Stwórz tymczasowy plik, w którym zostaną zapisane dane .rds
-ufo_path <- withr::local_tempfile(fileext = ".rds")
-
-# Pobierz plik do tymczasowej lokalizacji
-download.file(url, ufo_path)
-
-# Wczytaj dane do obiektu R
-ufo_data_original <- readRDS(ufo_path)
+ufo_sightings <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2023/2023-06-20/ufo_sightings.csv')
+places <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2023/2023-06-20/places.csv')
+day_parts_map <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2023/2023-06-20/day_parts_map.csv')
 
 ```
+
 ```{r}
-# Główna tabela z obserwacjami UFO
-ufo_sightings <- ufo_data_original |> 
-  select(
-    reported_date_time:city,  # zakres kolumn od reported_date_time do city
-    state, country_code,
-    shape:has_images,         # zakres kolumn od shape do has_images
-    day_part                 # dodajemy informację o porze dnia
-  ) |> 
-  mutate(
-    shape = tolower(shape)    # zamień kształty na małe litery dla ujednolicenia
-  )
-
-# Unikalna tabela miejsc z dodatkowymi informacjami (np. współrzędne)
-places <- ufo_data_original |> 
-  select(city:country_code, latitude:elevation_m) |> 
-  distinct()  # usuń duplikaty
-
-# Drugi zbiór RDS: mapa pór dnia (rano, wieczór itd.)
-url2 <- "https://github.com/jonthegeek/apis/raw/main/data/data_day_parts_map.rds"
-day_parts_path <- withr::local_tempfile(fileext = ".rds")
-download.file(url2, day_parts_path)
-day_parts_map <- readRDS(day_parts_path)
-
+head(ufo_sightings)
+head(places)
+head(day_parts_map)
 ```
 ```{r}
-# Tworzymy katalog, jeśli go nie ma
 dir.create(here("data", "2023", "2023-06-20"), recursive = TRUE, showWarnings = FALSE)
 
-# Zapisz dane do plików CSV
 write_csv(ufo_sightings, here("data", "2023", "2023-06-20", "ufo_sightings.csv"))
 write_csv(places, here("data", "2023", "2023-06-20", "places.csv"))
 write_csv(day_parts_map, here("data", "2023", "2023-06-20", "day_parts_map.csv"))
-
 ```
 
 
