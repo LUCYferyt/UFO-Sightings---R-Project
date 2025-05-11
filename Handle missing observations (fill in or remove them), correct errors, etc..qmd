@@ -1,0 +1,113 @@
+---
+title: "Handle missing observations (fill in or remove them), correct errors, etc."
+format: html
+editor: visual
+---
+
+```{r}
+install.packages("naniar")
+```
+
+```{r}
+library(tidyverse)  
+library(here)       
+library(withr)
+library(naniar)
+```
+
+
+```{r}
+ufo_sightings %>% 
+  dplyr::slice_sample(n = 1000) %>% 
+  vis_miss(cluster = TRUE, sort_miss = TRUE)
+```
+```{r}
+most_common_day_part <- ufo_sightings %>%
+  count(day_part) %>%
+  arrange(desc(n)) %>%
+  slice(1) %>%
+  pull(day_part)
+
+most_common_shape <- ufo_sightings %>%
+  count(shape) %>%
+  arrange(desc(n)) %>%
+  slice(1) %>%
+  pull(shape)
+
+# najczestrza wartosc
+ufo_clean <- ufo_sightings %>%
+  mutate(
+    day_part = ifelse(is.na(day_part), most_common_day_part, day_part),
+    shape = ifelse(is.na(shape), most_common_shape, shape)
+  )
+
+write_csv(ufo_clean, here("data", "2023", "2023-06-20", "ufo_clean.csv"))
+
+```
+
+```{r}
+ufo_clean %>% 
+  dplyr::slice_sample(n = 1000) %>% 
+  vis_miss(cluster = TRUE, sort_miss = TRUE)
+```
+
+
+```{r}
+places %>% 
+  dplyr::slice_sample(n = 1000) %>% 
+  vis_miss(cluster = TRUE, sort_miss = TRUE)
+```
+```{r}
+#nie mam lepszego pomysłu na uzuepłenienie niż " "
+places_clean <- places %>%
+  mutate(
+    alternate_city_names = ifelse(is.na(alternate_city_names), " ", alternate_city_names)
+  )
+
+median_elevation <- median(places$elevation_m, na.rm = TRUE)
+
+places_clean <- places_clean %>%
+  mutate(
+    elevation_m = ifelse(is.na(elevation_m), median_elevation, elevation_m)
+  )
+
+write_csv(places_clean, here("data", "2023", "2023-06-20", "places_clean.csv"))
+```
+
+```{r}
+places_clean %>% 
+  dplyr::slice_sample(n = 1000) %>% 
+  vis_miss(cluster = TRUE, sort_miss = TRUE)
+```
+
+
+```{r}
+day_parts_map %>% 
+  dplyr::slice_sample(n = 1000) %>% 
+  vis_miss(cluster = TRUE, sort_miss = TRUE)
+```
+```{r}
+day_parts_clean <- day_parts_map %>%
+  mutate(
+    astronomical_twilight_begin = ifelse(
+      is.na(astronomical_twilight_begin),
+      median(astronomical_twilight_begin, na.rm = TRUE),
+      astronomical_twilight_begin
+    ),
+    astronomical_twilight_end = ifelse(
+      is.na(astronomical_twilight_end),
+      median(astronomical_twilight_end, na.rm = TRUE),
+      astronomical_twilight_end
+    )
+  )
+
+write_csv(day_parts_clean, here("data", "2023", "2023-06-20", "day_parts_clean.csv"))
+```
+
+```{r}
+day_parts_clean %>% 
+  dplyr::slice_sample(n = 1000) %>% 
+  vis_miss(cluster = TRUE, sort_miss = TRUE)
+```
+
+
