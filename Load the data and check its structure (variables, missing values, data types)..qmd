@@ -7,17 +7,20 @@ editor: visual
 ```{r}
 install.packages(c("tidyverse", "here", "withr"))
 ```
+
 ```{r}
 library(tidyverse)  
 library(here)       
 library(withr)      
 ```
+
 ```{r}
 ufo_sightings <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2023/2023-06-20/ufo_sightings.csv')
 places <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2023/2023-06-20/places.csv')
 day_parts_map <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2023/2023-06-20/day_parts_map.csv')
 
 ```
+
 ```{r}
 head(ufo_sightings)
 head(places)
@@ -37,27 +40,34 @@ glimpse(ufo_sightings)
 glimpse(places)
 glimpse(day_parts_map)
 ```
+
 ```{r}
 colSums(is.na(ufo_sightings))
 ```
+
 ```{r}
 colSums(is.na(places))
 ```
+
 ```{r}
 colSums(is.na(day_parts_map))
 ```
+
 ```{r}
 dim(ufo_sightings)
 summary(ufo_sightings)
 ```
+
 ```{r}
 dim(places)
 summary(places)
 ```
+
 ```{r}
 dim(day_parts_map)
 summary(day_parts_map)
 ```
+
 ```{r}
 sum(duplicated(ufo_sightings))
 ```

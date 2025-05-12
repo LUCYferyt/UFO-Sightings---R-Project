@@ -15,12 +15,12 @@ library(withr)
 library(naniar)
 ```
 
-
 ```{r}
 ufo_sightings %>% 
   dplyr::slice_sample(n = 1000) %>% 
   vis_miss(cluster = TRUE, sort_miss = TRUE)
 ```
+
 ```{r}
 most_common_day_part <- ufo_sightings %>%
   count(day_part) %>%
@@ -51,12 +51,12 @@ ufo_clean %>%
   vis_miss(cluster = TRUE, sort_miss = TRUE)
 ```
 
-
 ```{r}
 places %>% 
   dplyr::slice_sample(n = 1000) %>% 
   vis_miss(cluster = TRUE, sort_miss = TRUE)
 ```
+
 ```{r}
 #nie mam lepszego pomysłu na uzuepłenienie niż " "
 places_clean <- places %>%
@@ -80,12 +80,12 @@ places_clean %>%
   vis_miss(cluster = TRUE, sort_miss = TRUE)
 ```
 
-
 ```{r}
 day_parts_map %>% 
   dplyr::slice_sample(n = 1000) %>% 
   vis_miss(cluster = TRUE, sort_miss = TRUE)
 ```
+
 ```{r}
 day_parts_clean <- day_parts_map %>%
   mutate(
@@ -109,5 +109,3 @@ day_parts_clean %>%
   dplyr::slice_sample(n = 1000) %>% 
   vis_miss(cluster = TRUE, sort_miss = TRUE)
 ```
-
-

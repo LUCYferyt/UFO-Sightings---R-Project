@@ -1,0 +1,142 @@
+---
+title: "Explore data with charts"
+format: html
+editor: visual
+---
+
+```{r}
+install.packages("naturalearth")
+install.packages("naturalearthdata")
+```
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(sf)
+library(rnaturalearth)
+library(rnaturalearthdata)
+```
+
+
+Number of sightings per day
+```{r}
+ufo_model_data_mutated %>%
+  count(date = as.Date(reported_date_time)) %>%
+  ggplot(aes(x = date, y = n)) +
+  geom_line(color = "steelblue") +
+  labs(title = "Number of sightings per day", x = "Date", y = "Number of sightings")
+```
+
+Number of sightings depending on the day of the week
+```{r}
+ufo_model_data_mutated %>%
+  count(weekday) %>%
+  ggplot(aes(x = weekday, y = n)) +
+  geom_col(fill = "orange") +
+  labs(title = "Sightings depending on the day of the week", x = "Day of the week", y = "Number of sightings")
+```
+
+Hourly distribution of sightings
+```{r}
+ufo_model_data_mutated %>%
+  mutate(hour = hour(reported_date_time)) %>%
+  count(hour) %>%
+  ggplot(aes(x = hour, y = n)) +
+  geom_col(fill = "purple") +
+  labs(title = "Hourly distribution of sightings", x = "Hour of the day", y = "Number of sightings")
+```
+
+
+Heatmap: day of the week vs hour of the day
+```{r}
+ufo_model_data_mutated %>%
+  mutate(
+    hour = hour(reported_date_time),
+    weekday = fct_relevel(weekday, c("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"))
+  ) %>%
+  count(weekday, hour) %>%
+  ggplot(aes(x = hour, y = weekday, fill = n)) +
+  geom_tile(color = "white") +
+  scale_fill_viridis_c() +
+  labs(title = "Heatmap: day of the week vs hour of the day", x = "Hour of the day", y = "Day of the week", fill = "Number of sightings")
+
+```
+
+
+
+```{r}
+ufo_model_data_mutated %>%
+  mutate(image_status = ifelse(has_images, "Has an image", "Has no image")) %>%
+  count(image_status) %>%
+  ggplot(aes(x = "", y = n, fill = image_status)) +
+  geom_col(width = 1) +
+  coord_polar(theta = "y") +
+  labs(title = "Sightins with images vs no image", fill = "Image existence") +
+  theme_void() +
+  scale_fill_manual(values = c("Has an image" = "#66BB6A", "Has no image" = "#EF5350"))
+```
+
+Making sure if above piechart is correct
+```{r}
+sum(ufo_model_data_mutated$has_images != FALSE, na.rm = TRUE)
+```
+
+
+Number of sightings per shape
+```{r}
+ufo_model_data_mutated %>%
+  count(shape) %>%
+  ggplot(aes(x = reorder(shape, n), y = n)) +
+  geom_col(fill = "skyblue") +
+  coord_flip() +
+  labs(title = "Number of sightings per shape", x = "Shape", y = "Number of sightings")
+```
+
+
+Number of sightings per country
+```{r}
+ufo_model_data_mutated %>%
+  count(country_code) %>%
+  filter(n >= 100) %>%
+  ggplot(aes(x = reorder(country_code, n), y = n)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(
+    title = "Number of sightings per country",
+    x = "Country code",
+    y = "Number of sightings"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+
+Density map of sightings
+```{r}
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+places_clean %>%
+  filter(!is.na(latitude), !is.na(longitude)) %>%
+  mutate(
+    pop_category = case_when(
+      population < 10000  ~ "small",
+      population < 100000 ~ "medium",
+      TRUE                ~ "large"
+    )
+  ) %>%
+  ggplot() +
+  geom_sf(data = world, fill = "lightgray", color = "black") +  # Dodajemy mapę
+  geom_point(aes(
+    x = longitude, y = latitude,
+    size = population, color = pop_category
+  ), alpha = 0.6) +
+  scale_size(range = c(1, 6), guide = "none") +
+  labs(
+    title = "Cities with UFO sightings",
+    subtitle = "Point size ~ population, color ~ population category",
+    x = "Latitude",
+    y = "Altitude",
+    color = "Population category"
+  ) +
+  theme_minimal()
+```
+
+

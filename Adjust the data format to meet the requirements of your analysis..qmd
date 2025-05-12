@@ -3,26 +3,25 @@ title: "Adjust the data format to meet the requirements of your analysis."
 format: html
 editor: visual
 ---
+
 ```{r}
 
 ufo_model_data <- ufo_clean %>%
-  select(-c(shape, reported_duration, summary))
+  filter(!is.na(shape), !is.na(reported_duration), !is.na(summary))
 
 
 places_model_data <- places_clean %>%
-  select(-alternate_city_names)
+  filter(!is.na(alternate_city_names))
 
 ```
 
 ```{r}
 glimpse(ufo_model_data)
 glimpse(places_model_data)
+glimpse(day_parts_clean)
 ```
+
 ```{r}
 write_csv(ufo_model_data, here("data", "2023", "2023-06-20", "ufo_model_data.csv"))
 write_csv(places_model_data, here("data", "2023", "2023-06-20", "places_model_data.csv"))
 ```
-
-
-
-

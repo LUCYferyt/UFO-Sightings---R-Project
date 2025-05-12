@@ -1,0 +1,86 @@
+---
+title: "Add new columns to each dataframe"
+format: html
+editor: visual
+---
+
+``` {r}
+library(lubridate)
+library(dplyr)
+library(hms)
+```
+
+
+Adding new columns to "sightings" dataframe
+```{r}
+ufo_model_data_mutated <- ufo_model_data %>%
+  mutate(
+    year = year(reported_date_time),
+    month = month(reported_date_time),
+    weekday = wday(reported_date_time, label = TRUE, abbr = FALSE, locale = "C"),
+    is_weekend = weekday %in% c("Sat", "Sun"),
+    country_upper = toupper(country_code),
+    report_hour = hour(reported_date_time),
+    city_state = paste(city, state, sep = ", "),
+    report_delay_days = as.numeric(difftime(posted_date, as.Date(reported_date_time), units = "days"))
+  )
+
+ufo_model_data_mutated
+```
+
+
+Adding new columns to "places" dataframe
+```{r}
+places_model_data_mutated <- places_model_data %>%
+  mutate(
+    city_state = paste(city, state, sep = ", "),
+    is_us = country_code == "US",
+    population_log = log1p(population),
+    hemisphere = ifelse(latitude >= 0, "Northern", "Southern"),
+    is_coastal = abs(longitude) < 80 | abs(longitude) > 120,
+    pop_category = case_when(
+      population < 10000 ~ "small",
+      population < 100000 ~ "medium",
+      TRUE ~ "large"
+    ),
+    elevation_category = case_when(
+      is.na(elevation_m) ~ "unknown",
+      elevation_m < 100 ~ "low",
+      elevation_m < 500 ~ "medium",
+      TRUE ~ "high"
+    ),
+    name_length = nchar(city),
+    timezone_area = sapply(strsplit(timezone, "/"), `[`, 2)
+  )
+
+places_model_data_mutated
+```
+
+
+
+Adding new columns to "day parts" dataframe
+```{r}
+day_parts_model_mutated <- day_parts_clean %>%
+  mutate(
+    daylight_duration = as.numeric(sunset - sunrise, units = "secs"),
+    is_northern_hemisphere = rounded_lat >= 0,
+    sunrise_hour = hour(sunrise),
+    sunset_hour = hour(sunset),
+    is_day_short = daylight_duration < 36000, # mniej niż 10h
+    twilight_duration = as.numeric(astronomical_twilight_end - astronomical_twilight_begin, units = "secs"),
+    is_long_twilight = twilight_duration > 5400, # 1.5h
+    sunrise_minutes = hour(sunrise) * 60 + minute(sunrise),
+    solar_noon_minutes = hour(solar_noon) * 60 + minute(solar_noon),
+    sunset_minutes = hour(sunset) * 60 + minute(sunset)
+  )
+
+day_parts_model_mutated
+```
+
+
+```{r}
+glimpse(ufo_model_data_mutated)
+glimpse(places_model_data_mutated)
+glimpse(day_parts_clean)
+```
+
