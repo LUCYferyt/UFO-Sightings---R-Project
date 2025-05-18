@@ -398,7 +398,7 @@ library(rnaturalearth)
 library(rnaturalearthdata)
 ```
 
-##Number of sightings per day
+## Number of sightings per day
 
 To observe the overall volume and evolution of UFO reports over time, and detect historical patterns or anomalies.
 
@@ -438,7 +438,7 @@ ufo_model_data_mutated %>%
 
 The chart shows a clear rise in UFO sightings from the 1980s to around 2012, with a peak near 2014. After that, there’s a sharp decline in reports. The red loess curve highlights a long-term upward trend followed by a recent downward shift. This may reflect changes in reporting behavior, public interest, or data availability over time.
 
-##Number of sightings depending on the day of the week
+## Number of sightings depending on the day of the week
 
 To investigate whether UFO sightings are more frequent on certain days, especially weekends when people are more likely to be outdoors.
 
