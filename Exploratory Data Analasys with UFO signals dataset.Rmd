@@ -309,16 +309,17 @@ day_parts_model_mutated <- day_parts_clean %>%
 
 day_parts_model_mutated
 ```
-- `daylight_duration`: The length of the day in seconds — difference between `sunset` and `sunrise`.
-- `is_northern_hemisphere`: Logical: `TRUE` if the location is in the Northern Hemisphere. 
-- `sunrise_hour`: The hour (0–23) when the sun rises.
-- `sunset_hour`: 	The hour (0–23) when the sun sets.
-- `is_day_short`: Logical: `TRUE` if the day is shorter than 10 hours 
-- `twilight_duration`: Duration of astronomical twilight in seconds — time between `astronomical_twilight_begin` and `end`.
-- `is_long_twilight`: Logical: `TRUE` if twilight duration is longer than 1.5 hours
-- `sunrise_minutes`: Sunrise time in total minutes from midnight.
-- `solar_noon_minutes`: Solar noon time in minutes from midnight.
-- `sunset_minutes`: Sunset time in minutes from midnight.
+
+-   `daylight_duration`: The length of the day in seconds — difference between `sunset` and `sunrise`.
+-   `is_northern_hemisphere`: Logical: `TRUE` if the location is in the Northern Hemisphere.
+-   `sunrise_hour`: The hour (0–23) when the sun rises.
+-   `sunset_hour`: The hour (0–23) when the sun sets.
+-   `is_day_short`: Logical: `TRUE` if the day is shorter than 10 hours
+-   `twilight_duration`: Duration of astronomical twilight in seconds — time between `astronomical_twilight_begin` and `end`.
+-   `is_long_twilight`: Logical: `TRUE` if twilight duration is longer than 1.5 hours
+-   `sunrise_minutes`: Sunrise time in total minutes from midnight.
+-   `solar_noon_minutes`: Solar noon time in minutes from midnight.
+-   `sunset_minutes`: Sunset time in minutes from midnight.
 
 ```{r}
 glimpse(ufo_model_data_mutated)
@@ -336,7 +337,7 @@ library(rnaturalearth)
 library(rnaturalearthdata)
 ```
 
-Number of sightings per day
+##Number of sightings per day
 
 ```{r}
 ufo_model_data_mutated %>%
@@ -346,7 +347,33 @@ ufo_model_data_mutated %>%
   labs(title = "Number of sightings per day", x = "Date", y = "Number of sightings")
 ```
 
-Number of sightings depending on the day of the week
+**Interpretation:**
+
+The chart shows daily UFO sightings over time. Sightings were rare before 1960, gradually increased through the 1990s, and peaked between 2000 and 2015. After 2015, the number of reports declined sharply. This suggests that UFO sightings may be influenced by media, public interest, or reporting practices.
+
+## Annual Trend of UFO Sightings
+
+```{r}
+ufo_model_data_mutated %>%
+  mutate(year = lubridate::year(reported_date_time)) %>%
+  count(year) %>%
+  ggplot(aes(x = year, y = n)) +
+  geom_line(color = "darkblue") +
+  geom_smooth(se = FALSE, color = "red", method = "loess") +
+  labs(
+    title = "Annual Trend of UFO Sightings",
+    x = "Year",
+    y = "Number of Sightings"
+  ) +
+  theme_minimal()
+
+```
+
+**Interpretation:**
+
+The chart shows a clear rise in UFO sightings from the 1980s to around 2012, with a peak near 2014. After that, there’s a sharp decline in reports. The red loess curve highlights a long-term upward trend followed by a recent downward shift. This may reflect changes in reporting behavior, public interest, or data availability over time.
+
+##Number of sightings depending on the day of the week
 
 ```{r}
 ufo_model_data_mutated %>%
@@ -356,7 +383,11 @@ ufo_model_data_mutated %>%
   labs(title = "Sightings depending on the day of the week", x = "Day of the week", y = "Number of sightings")
 ```
 
-Hourly distribution of sightings
+**Interpretation:**
+
+The number of UFO sightings varies by day of the week. The highest counts occur on Saturdays and Sundays, while Tuesdays have the fewest reports. This suggests people are more likely to notice and report sightings during weekends, possibly due to having more free time or being outdoors more often.
+
+## Hourly distribution of sightings
 
 ```{r}
 ufo_model_data_mutated %>%
@@ -367,7 +398,11 @@ ufo_model_data_mutated %>%
   labs(title = "Hourly distribution of sightings", x = "Hour of the day", y = "Number of sightings")
 ```
 
-Heatmap: day of the week vs hour of the day
+**Interpretation:**
+
+UFO sightings are most frequently reported between 8 PM and 3 AM, peaking around 2 AM. Sightings are least common during midday hours. This pattern suggests that sightings are more likely to occur—or at least be noticed and reported—at night, when the sky is dark and unusual lights are more visible.
+
+## Heatmap: day of the week vs hour of the day
 
 ```{r}
 ufo_model_data_mutated %>%
@@ -383,6 +418,12 @@ ufo_model_data_mutated %>%
 
 ```
 
+**Interpretation:**
+
+The heatmap shows the distribution of UFO sightings by hour of the day and day of the week. Most sightings occur after midnight on Sunday, peaking between 1–3 AM. Other late-night hours, especially on weekends, also show elevated counts. This pattern reinforces that sightings are more frequent during late-night weekend hours, when people are likely to be awake and outdoors in dark conditions.
+
+## Sightins with images vs no image
+
 ```{r}
 ufo_model_data_mutated %>%
   mutate(image_status = ifelse(has_images, "Has an image", "Has no image")) %>%
@@ -395,13 +436,17 @@ ufo_model_data_mutated %>%
   scale_fill_manual(values = c("Has an image" = "#66BB6A", "Has no image" = "#EF5350"))
 ```
 
+**Interpretation:**
+
+The chart shows that almost all UFO sightings lack images. Sightings with images are extremely rare, suggesting that reports are usually text-based or anecdotal. This indicates a strong reliance on witness testimony rather than visual evidence in the dataset.
+
 Making sure if above piechart is correct
 
 ```{r}
 sum(ufo_model_data_mutated$has_images != FALSE, na.rm = TRUE)
 ```
 
-Number of sightings per shape
+## Number of sightings per shape
 
 ```{r}
 ufo_model_data_mutated %>%
@@ -412,7 +457,11 @@ ufo_model_data_mutated %>%
   labs(title = "Number of sightings per shape", x = "Shape", y = "Number of sightings")
 ```
 
-Number of sightings per country
+**Interpretation:**
+
+The most commonly reported UFO shapes are light, circle, and triangle. Unusual shapes like cube, star, and cross are very rare. This suggests that most sightings describe simple or glowing forms, possibly influenced by visibility, perception, or common cultural imagery.
+
+## Number of sightings per country
 
 ```{r}
 ufo_model_data_mutated %>%
@@ -428,7 +477,11 @@ ufo_model_data_mutated %>%
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-Density map of sightings
+**Interpretation:**
+
+The vast majority of UFO sightings come from the United States, with over 80,000 reports. Other countries like Canada and Great Britain have significantly fewer sightings. This suggests that the dataset is strongly US-centric, possibly due to better reporting infrastructure, public interest, or data source bias.
+
+## Density map of sightings
 
 ```{r}
 world <- ne_countries(scale = "medium", returnclass = "sf")
@@ -458,3 +511,29 @@ places_clean %>%
   ) +
   theme_minimal()
 ```
+
+**Interpretation:**
+
+Sightings are most densely clustered in North America and Europe, especially in large urban areas. This suggests that population density and infrastructure may influence reporting frequency. Other regions show fewer reports, which could reflect lower reporting access or less data availability.
+
+## UFO Sightings by City Population Category
+
+```{r}
+ufo_model_data_mutated %>%
+  left_join(places_model_data_mutated %>% select(city_state, pop_category), by = "city_state") %>%
+  count(pop_category) %>%
+  ggplot(aes(x = pop_category, y = n, fill = pop_category)) +
+  geom_col(show.legend = FALSE) +
+  labs(
+    title = "UFO Sightings by City Population Category",
+    x = "Population Category",
+    y = "Number of Sightings"
+  ) +
+  scale_fill_manual(values = c("small" = "#91bfdb", "medium" = "#fdae61", "large" = "#d73027")) +
+  theme_minimal()
+
+```
+
+**Interpretation:**
+
+The chart shows that most UFO sightings come from medium-sized cities, followed by large cities, with small towns reporting the fewest. This suggests that mid-sized urban areas may offer a balance of visibility, outdoor activity, and public engagement conducive to sightings. It also reflects where people live and are most likely to report unusual events.
