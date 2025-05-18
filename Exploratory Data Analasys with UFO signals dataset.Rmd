@@ -3,6 +3,61 @@ title: "Exploratory Data Analasys with UFO signals dataset"
 output: html_notebook
 ---
 
+The analysis focuses on uncovering **temporal**, **spatial**, and **behavioral patterns** in UFO reports. It explores when sightings are most frequent (by hour, day, and year), where they occur (by country and city size), how they are described (e.g., shape, presence of images), and how these aspects relate to population, geography, and daylight cycles.
+
+## Description of the data
+
+Database contains structured information about UFO sightings reported to NUFORC, including details about the **time**, **location**, **appearance**, and **context** of each event. It is supported by additional datasets describing **geographic attributes of cities** and **sunlight conditions** based on time and location.
+
+`ufo_sightings.csv`
+
+| variable | class | description |
+|:---------------------------|:----------------|:---------------------------|
+| reported_date_time | datetime | The time and date of the sighting, as it appears in the original NUFORC data. |
+| reported_date_time_utc | datetime | The time and date of the sighting, normalized to UTC. |
+| posted_date | datetime | The date when the sighting was posted to NUFORC. |
+| city | character | The city of the sighting. Some of these have been cleaned from the original data. |
+| state | character | The state, province, or similar division of the sighting. |
+| country_code | character | The 2-letter country code of the sighting, normalized from the original data. |
+| shape | character | The reported shape of the craft. |
+| reported_duration | character | The reported duration of the event, in the reporter's words. |
+| duration_seconds | double | The duration normalized to seconds using regex. |
+| summary | character | The reported summary of the event. |
+| has_images | logical | Whether the sighting has images available on NUFORC. |
+| day_part | character | The approximate part of the day in which the sighting took place, based on the reported date and time, the place, and data from sunrise-sunset.org. Latitude and longitude were rounded to the 10s digit, and the date was rounded to the week, to match against time points such as "nautical twilight", "sunrise", and "sunset." |
+
+`places.csv`
+
+| variable | class | description |
+|:---------------------------|:----------------|:---------------------------|
+| city | character | Unique cities in which sightings took place. |
+| alternate_city_names | character | Comma-separated other names for the city. |
+| state | character | The state, province, or similar division of the sighting. |
+| country | character | The name of the country. |
+| country_code | character | The 2-letter country code of the sighting. |
+| latitude | double | The latitude for this city, from geonames.org. |
+| longitude | double | The longitude for this city, from geonames.org. |
+| timezone | character | The timezone for this city, from geonames.org. |
+| population | double | The population for this city, from geonames.org. |
+| elevation_m | double | The elevation in meters for this city, from geonames.org. |
+
+`day_parts_map.csv`
+
+| variable | class | description |
+|:---------------------------|:--------------|:---------------------------|
+| rounded_lat | double | Latitudes rounded to the tens digit. |
+| rounded_long | double | Longitudes rounded to the tens digit. |
+| rounded_date | double | Dates rounded to the nearest week. |
+| astronomical_twilight_begin | double | The UTC time of day when astronomical twilight began on this date in this location. Astronomical twilight begins when the sun is 18 degrees below the horizon before sunrise. |
+| nautical_twilight_begin | double | The UTC time of day when nautical twilight began on this date (or the next date) in this location. Nautical twilight begins when the sun is 12 degrees below the horizon before sunrise. |
+| civil_twilight_begin | double | The UTC time of day when civil twilight began on this date (or the next date) in this location. Civil twilight begins when the sun is 6 degrees below the horizon before sunrise. |
+| sunrise | double | The UTC time of day when the sun rose on this date (or the next date) in this location. |
+| solar_noon | double | The UTC time of day when the sun was at its zenith on this date (or the next date) in this location. |
+| sunset | double | The UTC time of day when the sun set on this date (or the next date) in this location. |
+| civil_twilight_end | double | The UTC time of day when civil twilight ended on this date (or the next date) in this location. Civil twilight ends when the sun is 6 degrees below the horizon after sunset. |
+| nautical_twilight_end | double | The UTC time of day when nautical twilight ended on this date (or the next date) in this location. Nautical twilight ends when the sun is 12 degrees below the horizon after sunset. |
+| astronomical_twilight_end | double | The UTC time of day when astronomical twilight ended on this date (or the next date) in this location. Astronomical twilight ends when the sun is 18 degrees below the horizon after sunset. |
+
 # Load the data and check its structure (variables, missing values, data types)
 
 ```{r}
@@ -90,6 +145,8 @@ library(naniar)
 
 ## UFO sightings
 
+Contains detailed records of UFO sightings, including the date and time of the event, location (city, state, country), reported shape and duration, and a short summary. It also indicates whether an image is available and includes the estimated part of the day the sighting occurred.
+
 ```{r}
 ufo_sightings %>% 
   dplyr::slice_sample(n = 1000) %>% 
@@ -129,6 +186,8 @@ ufo_clean %>%
 
 ## Places
 
+Contains geographic and demographic information about cities where UFO sightings occurred. It includes city names, alternate names, state, country, and country code, as well as latitude, longitude, timezone, population, and elevation.
+
 ```{r}
 places %>% 
   dplyr::slice_sample(n = 1000) %>% 
@@ -160,6 +219,8 @@ places_clean %>%
 ```
 
 ## Day parts map
+
+Provides astronomical timing data based on geographic coordinates and date. It includes rounded latitude, longitude, and date, along with precise UTC times for sunrise, sunset, solar noon, and different twilight phases (astronomical, nautical, and civil).
 
 ```{r}
 day_parts_map %>% 
@@ -339,6 +400,8 @@ library(rnaturalearthdata)
 
 ##Number of sightings per day
 
+To observe the overall volume and evolution of UFO reports over time, and detect historical patterns or anomalies.
+
 ```{r}
 ufo_model_data_mutated %>%
   count(date = as.Date(reported_date_time)) %>%
@@ -352,6 +415,8 @@ ufo_model_data_mutated %>%
 The chart shows daily UFO sightings over time. Sightings were rare before 1960, gradually increased through the 1990s, and peaked between 2000 and 2015. After 2015, the number of reports declined sharply. This suggests that UFO sightings may be influenced by media, public interest, or reporting practices.
 
 ## Annual Trend of UFO Sightings
+
+Helps visualize how the frequency of UFO sightings has changed over time, revealing historical peaks and long-term trends.
 
 ```{r}
 ufo_model_data_mutated %>%
@@ -375,6 +440,8 @@ The chart shows a clear rise in UFO sightings from the 1980s to around 2012, wit
 
 ##Number of sightings depending on the day of the week
 
+To investigate whether UFO sightings are more frequent on certain days, especially weekends when people are more likely to be outdoors.
+
 ```{r}
 ufo_model_data_mutated %>%
   count(weekday) %>%
@@ -388,6 +455,8 @@ ufo_model_data_mutated %>%
 The number of UFO sightings varies by day of the week. The highest counts occur on Saturdays and Sundays, while Tuesdays have the fewest reports. This suggests people are more likely to notice and report sightings during weekends, possibly due to having more free time or being outdoors more often.
 
 ## Hourly distribution of sightings
+
+To analyze what time of day sightings occur most often, revealing strong nocturnal patterns in reported events.
 
 ```{r}
 ufo_model_data_mutated %>%
@@ -403,6 +472,8 @@ ufo_model_data_mutated %>%
 UFO sightings are most frequently reported between 8 PM and 3 AM, peaking around 2 AM. Sightings are least common during midday hours. This pattern suggests that sightings are more likely to occur—or at least be noticed and reported—at night, when the sky is dark and unusual lights are more visible.
 
 ## Heatmap: day of the week vs hour of the day
+
+To combine daily and hourly trends, showing exactly when during the week sightings peak—particularly during late-night weekend hours.
 
 ```{r}
 ufo_model_data_mutated %>%
@@ -423,6 +494,8 @@ ufo_model_data_mutated %>%
 The heatmap shows the distribution of UFO sightings by hour of the day and day of the week. Most sightings occur after midnight on Sunday, peaking between 1–3 AM. Other late-night hours, especially on weekends, also show elevated counts. This pattern reinforces that sightings are more frequent during late-night weekend hours, when people are likely to be awake and outdoors in dark conditions.
 
 ## Sightins with images vs no image
+
+To highlight the rarity of photographic evidence in UFO reports, emphasizing reliance on witness descriptions.
 
 ```{r}
 ufo_model_data_mutated %>%
@@ -448,6 +521,8 @@ sum(ufo_model_data_mutated$has_images != FALSE, na.rm = TRUE)
 
 ## Number of sightings per shape
 
+To identify which UFO shapes are most commonly reported, offering insight into visual patterns or public perception.
+
 ```{r}
 ufo_model_data_mutated %>%
   count(shape) %>%
@@ -462,6 +537,8 @@ ufo_model_data_mutated %>%
 The most commonly reported UFO shapes are light, circle, and triangle. Unusual shapes like cube, star, and cross are very rare. This suggests that most sightings describe simple or glowing forms, possibly influenced by visibility, perception, or common cultural imagery.
 
 ## Number of sightings per country
+
+To examine geographical reporting patterns and reveal the strong dominance of the U.S. in the dataset.
 
 ```{r}
 ufo_model_data_mutated %>%
@@ -482,6 +559,8 @@ ufo_model_data_mutated %>%
 The vast majority of UFO sightings come from the United States, with over 80,000 reports. Other countries like Canada and Great Britain have significantly fewer sightings. This suggests that the dataset is strongly US-centric, possibly due to better reporting infrastructure, public interest, or data source bias.
 
 ## Density map of sightings
+
+To visualize the global distribution of sightings and how they relate to city population size and location.
 
 ```{r}
 world <- ne_countries(scale = "medium", returnclass = "sf")
@@ -517,6 +596,8 @@ places_clean %>%
 Sightings are most densely clustered in North America and Europe, especially in large urban areas. This suggests that population density and infrastructure may influence reporting frequency. Other regions show fewer reports, which could reflect lower reporting access or less data availability.
 
 ## UFO Sightings by City Population Category
+
+Explores whether UFO sightings are more common in small, medium, or large cities, helping to assess the impact of urban scale on reporting frequency.
 
 ```{r}
 ufo_model_data_mutated %>%
