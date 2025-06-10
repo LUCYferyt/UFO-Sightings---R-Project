@@ -14,7 +14,34 @@ library(here)
 
 ```{r}
 
-ufo_sightings <- read_csv(here("data", "2023", "2023-06-20", "day_parts_clean.csv"))
+ufo_sightings <- read_csv(here("data", "2023", "2023-06-20", "ufo_model_data.csv"))
 places <- read_csv(here("data", "2023", "2023-06-20", "places_model_data.csv"))
-day_parts_map <- read_csv(here("data", "2023", "2023-06-20", "ufo_model_data.csv"))
+day_parts_map <- read_csv(here("data", "2023", "2023-06-20", "day_parts_clean.csv"))
 ```
+
+```{r}
+final_data <- merge(ufo_sightings, places, by = c("city", "state"))
+final_data <- final_data %>%
+  mutate(
+    rounded_lat = round(latitude, digits = -1),
+    rounded_long = round(longitude, digits = -1),
+    rounded_date = floor_date(ymd_hms(reported_date_time), unit = "week")
+  ) %>%
+  left_join(
+    day_parts_map %>% 
+      distinct(rounded_lat, rounded_long, rounded_date, .keep_all = TRUE), 
+    by = c("rounded_lat", "rounded_long", "rounded_date")
+  )
+
+
+```
+```{r}
+final_data <- na.omit(final_data)
+final_data <- final_data[, !(names(final_data) %in% c("country_code.x", "country_code.y", "alternate_city_names", "summary", "rounded_lat", "rounded_long", "rounded_date"))]
+```
+
+
+```{r}
+glimpse(final_data)
+```
+

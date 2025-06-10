@@ -12,7 +12,7 @@ Database contains structured information about UFO sightings reported to NUFORC,
 `ufo_sightings.csv`
 
 | variable | class | description |
-|:-----------------------|:-----------------------|:-----------------------|
+|:---|:---|:---|
 | reported_date_time | datetime | The time and date of the sighting, as it appears in the original NUFORC data. |
 | reported_date_time_utc | datetime | The time and date of the sighting, normalized to UTC. |
 | posted_date | datetime | The date when the sighting was posted to NUFORC. |
@@ -29,7 +29,7 @@ Database contains structured information about UFO sightings reported to NUFORC,
 `places.csv`
 
 | variable | class | description |
-|:-----------------------|:-----------------------|:-----------------------|
+|:---|:---|:---|
 | city | character | Unique cities in which sightings took place. |
 | alternate_city_names | character | Comma-separated other names for the city. |
 | state | character | The state, province, or similar division of the sighting. |
@@ -44,7 +44,7 @@ Database contains structured information about UFO sightings reported to NUFORC,
 `day_parts_map.csv`
 
 | variable | class | description |
-|:-----------------------|:-----------------------|:-----------------------|
+|:---|:---|:---|
 | rounded_lat | double | Latitudes rounded to the tens digit. |
 | rounded_long | double | Longitudes rounded to the tens digit. |
 | rounded_date | double | Dates rounded to the nearest week. |
