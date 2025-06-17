@@ -4,45 +4,134 @@ format: html
 editor: visual
 ---
 
-
 ```{r}
 library(tidyverse)
 library(tidymodels)
 library(vip)
 library(readr)
 library(here)
+library(themis)
+library(yardstick)
+library(ggplot2)
+library(dplyr)
 ```
 
-```{r}
 
-ufo_sightings <- read_csv(here("data", "2023", "2023-06-20", "ufo_model_data.csv"))
-places <- read_csv(here("data", "2023", "2023-06-20", "places_model_data.csv"))
-day_parts_map <- read_csv(here("data", "2023", "2023-06-20", "day_parts_clean.csv"))
+#Additional model preperation
+
+
+We take *ufo_model_data* which was the main dataframe, and we join the "places" dataframe to it.
+```{r}
+ufo_final_model_data <- ufo_model_data %>%
+  left_join(places_model_data, by = c("city", "state", "country_code"))
+
+ufo_final_model_data
 ```
 
+
+We have selected only several columns that we determined to be the most necessary in our predictions: shape, duration (in seconds), part of day, population of the city it took place and the geographical data.
 ```{r}
-final_data <- merge(ufo_sightings, places, by = c("city", "state"))
-final_data <- final_data %>%
+ufo_final_model_data <- ufo_final_model_data %>%
+  select(shape, duration_seconds, day_part, population, elevation_m, latitude, longitude) %>%
+  filter(!is.na(shape)) %>%
+  mutate(shape = factor(shape))
+
+ufo_final_model_data
+```
+
+
+We wanted our model to predict the type of shape a UFO sighting could have. This dataset had a lot of different shapes, so we decided to only use the 4 most common shapes
+```{r}
+top_shapes <- ufo_final_model_data %>%
+  count(shape, sort = TRUE) %>%
+  slice(1:4) %>%
+  pull(shape)
+
+top_shapes
+```
+
+Filtering the dataframe based on the 4 most common shapes
+```{r}
+ufo_final_model_data <- ufo_final_model_data %>%
+  filter(shape %in% top_shapes) %>%
+  mutate(shape = factor(shape))
+
+ufo_final_model_data
+```
+
+
+Five fold cross validation set-up
+```{r}
+set.seed(123)
+split <- initial_split(ufo_final_model_data, strata = day_part)
+train_data <- training(split)
+test_data <- testing(split)
+
+```
+
+
+Recipe
+```{r}
+rec <- recipe(shape ~ duration_seconds + day_part + population + elevation_m + latitude + longitude,
+              data = ufo_final_model_data) %>%
+  step_dummy(all_nominal_predictors()) %>%
+  step_zv(all_predictors()) %>%
+  step_normalize(all_numeric_predictors())
+
+rec
+```
+
+#Multinomal Regression Model
+
+We decided on a multinomal regression model, as it's a type of regression that allows for non binary prediction.
+
+Model
+```{r}
+multi_model <- multinom_reg(mode = "classification") %>%
+  set_engine("nnet")
+
+multi_model
+```
+
+Workflow
+```{r}
+multi_wf <- workflow() %>%
+  add_model(multi_model) %>%
+  add_recipe(rec)
+
+multi_wf
+```
+
+
+Model fitting
+```{r}
+multi_fit <- fit(multi_wf, data = train_data)
+```
+
+
+Predictions
+```{r}
+multi_preds <- predict(multi_fit, test_data) %>%
+  bind_cols(test_data) %>%
   mutate(
-    rounded_lat = round(latitude, digits = -1),
-    rounded_long = round(longitude, digits = -1),
-    rounded_date = floor_date(ymd_hms(reported_date_time), unit = "week")
-  ) %>%
-  left_join(
-    day_parts_map %>% 
-      distinct(rounded_lat, rounded_long, rounded_date, .keep_all = TRUE), 
-    by = c("rounded_lat", "rounded_long", "rounded_date")
+    shape = factor(shape),
+    .pred_class = factor(.pred_class, levels = levels(shape))
   )
-
-
 ```
+
+
+
+Trained model metrics. Generally pretty poor results
 ```{r}
-final_data <- na.omit(final_data)
-final_data <- final_data[, !(names(final_data) %in% c("country_code.x", "country_code.y", "alternate_city_names", "summary", "rounded_lat", "rounded_long", "rounded_date"))]
+metrics <- metric_set(accuracy, precision, recall, f_meas)
+
+metrics(multi_preds, truth = shape, estimate = .pred_class, estimator = "macro_weighted")
 ```
 
 
+Confusion matrix - it clearly shows that the model does not want to predict anything other than *circle* and *light*. It clearly shows a problem in the model.
 ```{r}
-glimpse(final_data)
+conf_mat(multi_preds, truth = shape, estimate = .pred_class)
 ```
+
 

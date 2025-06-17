@@ -12,7 +12,7 @@ Database contains structured information about UFO sightings reported to NUFORC,
 `ufo_sightings.csv`
 
 | variable | class | description |
-|:---|:---|:---|
+|:-----------------------|:-----------------------|:-----------------------|
 | reported_date_time | datetime | The time and date of the sighting, as it appears in the original NUFORC data. |
 | reported_date_time_utc | datetime | The time and date of the sighting, normalized to UTC. |
 | posted_date | datetime | The date when the sighting was posted to NUFORC. |
@@ -29,7 +29,7 @@ Database contains structured information about UFO sightings reported to NUFORC,
 `places.csv`
 
 | variable | class | description |
-|:---|:---|:---|
+|:-----------------------|:-----------------------|:-----------------------|
 | city | character | Unique cities in which sightings took place. |
 | alternate_city_names | character | Comma-separated other names for the city. |
 | state | character | The state, province, or similar division of the sighting. |
@@ -44,7 +44,7 @@ Database contains structured information about UFO sightings reported to NUFORC,
 `day_parts_map.csv`
 
 | variable | class | description |
-|:---|:---|:---|
+|:-----------------------|:-----------------------|:-----------------------|
 | rounded_lat | double | Latitudes rounded to the tens digit. |
 | rounded_long | double | Longitudes rounded to the tens digit. |
 | rounded_date | double | Dates rounded to the nearest week. |
@@ -618,3 +618,191 @@ ufo_model_data_mutated %>%
 **Interpretation:**
 
 The chart shows that most UFO sightings come from medium-sized cities, followed by large cities, with small towns reporting the fewest. This suggests that mid-sized urban areas may offer a balance of visibility, outdoor activity, and public engagement conducive to sightings. It also reflects where people live and are most likely to report unusual events.
+
+---
+
+```{r}
+library(tidyverse)
+library(tidymodels)
+library(vip)
+library(readr)
+library(here)
+library(themis)
+library(dplyr)
+```
+
+
+#Additional model preperation
+
+
+We take *ufo_model_data* which was the main dataframe, and we join the "places" dataframe to it.
+```{r}
+ufo_final_model_data <- ufo_model_data %>%
+  left_join(places_model_data, by = c("city", "state", "country_code"))
+
+ufo_final_model_data
+```
+
+
+We have selected only several columns that we determined to be the most necessary in our predictions: shape, duration (in seconds), part of day, population of the city it took place and the geographical data.
+```{r}
+ufo_final_model_data <- ufo_final_model_data %>%
+  select(shape, duration_seconds, day_part, population, elevation_m, latitude, longitude) %>%
+  filter(!is.na(shape)) %>%
+  mutate(shape = factor(shape))
+
+ufo_final_model_data
+```
+
+
+We wanted our model to predict the type of shape a UFO sighting could have. This dataset had a lot of different shapes, so we decided to only use the 4 most common shapes
+```{r}
+top_shapes <- ufo_final_model_data %>%
+  count(shape, sort = TRUE) %>%
+  slice(1:4) %>%
+  pull(shape)
+
+top_shapes
+```
+
+Filtering the dataframe based on the 4 most common shapes
+```{r}
+ufo_final_model_data <- ufo_final_model_data %>%
+  filter(shape %in% top_shapes) %>%
+  mutate(shape = factor(shape))
+
+ufo_final_model_data
+```
+
+
+Five fold cross validation set-up
+```{r}
+set.seed(123)
+split <- initial_split(ufo_final_model_data, strata = day_part)
+train_data <- training(split)
+test_data <- testing(split)
+
+```
+
+
+Recipe
+```{r}
+rec <- recipe(shape ~ duration_seconds + day_part + population + elevation_m + latitude + longitude,
+              data = ufo_final_model_data) %>%
+  step_dummy(all_nominal_predictors()) %>%
+  step_zv(all_predictors()) %>%
+  step_normalize(all_numeric_predictors())
+
+rec
+```
+
+#Multinomal Regression Model
+
+We decided on a multinomal regression model, as it's a type of regression that allows for non binary prediction.
+
+Model
+```{r}
+multi_model <- multinom_reg(mode = "classification") %>%
+  set_engine("nnet")
+
+multi_model
+```
+
+Workflow (add model and recipe)
+```{r}
+wf_multi <- workflow() %>%
+  add_model(multi_model) %>%
+  add_recipe(rec)
+
+wf_multi
+```
+
+
+Model fitting
+```{r}
+multi_fit <- fit(wf_multi, data = train_data)
+```
+
+
+Predictions based on the fitted model, done on the test data.
+```{r}
+multi_preds <- predict(multi_fit, test_data) %>%
+  bind_cols(test_data) %>%
+  mutate(
+    shape = factor(shape),
+    .pred_class = factor(.pred_class, levels = levels(shape))
+  )
+```
+
+
+
+Trained model metrics. These are generally pretty poor results
+```{r}
+metrics <- metric_set(accuracy, precision, recall, f_meas)
+
+metrics(multi_preds, truth = shape, estimate = .pred_class, estimator = "macro_weighted")
+```
+
+
+Confusion matrix - it clearly shows that the model does not want to predict anything other than *circle* and *light*. It clearly shows a problem in the model.
+```{r}
+conf_mat(multi_preds, truth = shape, estimate = .pred_class)
+```
+
+
+#Random Forest
+
+Our second model type is a random forest. We tried it as it also fit our case and would be (in theory) more advanced than multinomal regression.
+
+Model
+```{r}
+rf_model <- rand_forest(mode = "classification", trees = 500) %>%
+  set_engine("ranger")
+
+rf_model
+```
+
+Workflow (add model and recipe)
+```{r}
+wf_rf <- workflow() %>%
+  add_recipe(rec) %>%
+  add_model(rf_model)
+```
+
+
+Model fitting
+```{r}
+rf_fit <- fit(wf_rf, data = train_data)
+```
+
+
+Predictions
+```{r}
+rf_preds <- predict(rf_fit, test_data) %>%
+  bind_cols(test_data) %>%
+  mutate(
+    shape = factor(shape),
+    .pred_class = factor(.pred_class, levels = levels(shape))
+  )
+```
+
+
+Trained model metrics. Generally pretty poor results here as well
+```{r}
+metrics <- metric_set(accuracy, precision, recall, f_meas)
+
+metrics(rf_preds, truth = shape, estimate = .pred_class, estimator = "macro_weighted")
+```
+
+
+
+Confusion matrix - it clearly shows that the model mainly wants to predict *circle* and *light*. This time however there is definitely an improvement.
+```{r}
+conf_mat(rf_preds, truth = shape, estimate = .pred_class)
+```
+
+
+
+# Conclusions
+
+Based on our results we came to the conclusion that the dataset has poor data for any model training. Most of all, the data is not balanced well enough. We first tried to make a model that would try to predict if a sighting was in USA or any other country other than it. That did not work well, as the amount of sightings in USA alone is so high, that it didn't work at all. Then we tried to predict other parameters and this way we finally landed at predicting shapes of the UFOs. Even though the results are still not great, these are the best ones we have gotten out of all of them. That is because even the *shape* data is not really balanced, as most of the sightings reported it the UFO as "light". That is what we believe was the primary reason for these poor results.
