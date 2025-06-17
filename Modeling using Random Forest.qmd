@@ -4,13 +4,18 @@ format: html
 editor: visual
 ---
 
+## Preparing the data
+
 ```{r}
 library(tidyverse)
 library(tidymodels)
 library(vip)
 library(readr)
 library(here)
+<<<<<<< HEAD
 library(themis)
+=======
+>>>>>>> cb33d2047023d675e060afd2b401560b5c0ebe59
 library(yardstick)
 library(ggplot2)
 library(dplyr)
@@ -117,20 +122,166 @@ rf_preds <- predict(rf_fit, test_data) %>%
   )
 ```
 
+<<<<<<< HEAD
 
 Trained model metrics. Generally pretty poor results
+=======
+>>>>>>> cb33d2047023d675e060afd2b401560b5c0ebe59
 ```{r}
 metrics <- metric_set(accuracy, precision, recall, f_meas)
 
 metrics(rf_preds, truth = shape, estimate = .pred_class, estimator = "macro_weighted")
 ```
 
+<<<<<<< HEAD
 
 
 Confusion matrix - it clearly shows that the model does not want to predict anything other than *circle* and *light*. This time however there is definetly an improvement.
+=======
+>>>>>>> cb33d2047023d675e060afd2b401560b5c0ebe59
 ```{r}
 conf_mat(rf_preds, truth = shape, estimate = .pred_class)
 ```
 
+<<<<<<< HEAD
 
 
+=======
+## Step 1: Data Splitting
+
+```{r}
+final_data_split <- initial_split(final_data, prop = 3/4, strata = shape)
+
+data_train <- training(final_data_split)
+data_test <- testing(final_data_split)
+
+cat("Training data:", nrow(data_train), "observations\n")
+cat("Testing data:", nrow(data_test), "observations\n")
+
+final_data <- vfold_cv(data_train, v = 10, strata = shape)
+```
+
+## Step 2: Preprocessing
+
+```{r}
+data_recipe <- recipe(
+    shape ~ .,
+    data = data_train) %>% 
+  step_normalize(all_numeric_predictors())
+```
+
+```{r}
+summary(data_recipe)
+```
+
+## Step 3: Model Specification
+
+```{r}
+rf_spec <- rand_forest(mode = "classification") %>% 
+  set_engine("ranger") 
+
+rf_spec
+```
+
+## Step 4: Bundling into a Workflow
+
+```{r}
+data_wf <- workflow() %>% 
+  add_recipe(data_recipe) %>% 
+  add_model(rf_spec)
+
+data_wf
+```
+
+## Step 5: Training the Model
+
+```{r fit-model}
+data_fit <- fit(data_wf, data = data_train)
+
+data_fit
+```
+
+```{r}
+predictions_class <- predict(data_fit, new_data = data_test, type = "class")
+predictions_class
+```
+
+```{r}
+predictions_prob <- predict(data_fit, new_data = data_test, type = "prob")
+predictions_prob
+```
+
+```{r}
+results_df <- bind_cols(
+  predictions_class,
+  predictions_prob,
+  data_test %>% select(shape)
+) %>%
+  mutate(shape = as.factor(shape))
+
+results_df
+```
+
+```{r}
+classification_metrics <- metric_set(
+  accuracy, 
+  roc_auc,
+  precision,
+  recall)
+classification_metrics 
+```
+
+```{r}
+
+eval_results <- results_df %>%
+  classification_metrics(
+    truth    = shape,
+    estimate = .pred_class,
+    dplyr::starts_with(".pred_") & !dplyr::matches("^\\.pred_class$"),
+    estimator = "macro"
+  )
+
+print(eval_results)
+```
+
+## Step 6: Calculate and plot confusion matrix
+
+```{r}
+cm <- conf_mat(results_df, truth = shape, estimate = .pred_class)
+
+df_cm <- as.data.frame.table(cm$table)
+names(df_cm) <- c("Predicted", "True", "Count")
+
+df_cm$Predicted <- factor(df_cm$Predicted, levels = rev(levels(df_cm$Predicted)))
+
+df_cm <- df_cm %>%
+  mutate(text_col = ifelse(Count > max(Count) * 0.5, "white", "black"))
+
+p <- ggplot(df_cm, aes(x = True, y = Predicted, fill = Count)) +
+  geom_tile(color = "grey80", size = 0.2) +
+  geom_text(aes(label = Count, color = text_col),
+            size = 3, show.legend = FALSE) +
+  scale_fill_gradient(low = "white", high = "steelblue", name = "Liczba") +
+  scale_color_identity() +
+  coord_equal() +
+  labs(
+    title = "Confusion Matrix: True vs. Predicted Shape",
+    x     = "True Shape",
+    y     = "Predicted Shape"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    panel.background  = element_rect(fill = "white", color = NA),
+    plot.background   = element_rect(fill = "white", color = NA),
+    legend.background = element_rect(fill = "white", color = NA),
+    axis.text.x       = element_text(angle = 45, hjust = 1),
+    panel.grid        = element_blank(),
+    plot.title        = element_text(hjust = 0.5, face = "bold")
+  )
+
+ggsave("conf_mat_rf.png", plot = p,
+       width = 12, height = 10, dpi = 300,
+       bg = "white")
+
+```
+>>>>>>> cb33d2047023d675e060afd2b401560b5c0ebe59
